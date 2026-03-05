@@ -1,60 +1,54 @@
 import streamlit as st
 
-# Konfiguracja wizualna
-st.set_page_config(page_title="Kalkulator WAKOL", page_icon="🔥", layout="centered")
+# Konfiguracja
+st.set_page_config(page_title="Kalkulator WAKOL", layout="centered")
 
-# Stylizacja dla lepszej widoczności na telefonie
-st.markdown("""
-    <style>
-    .main { background-color: #f5f5f5; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    </style>
-    """, unsafe_allow_html=True)
+st.title("🏗️ System WAKOL")
+st.write("Kalkulator materiałowy dla ogrzewania bruzdowanego.")
 
-st.title("🔥 System WAKOL")
-st.subheader("Kalkulator do Ogrzewania Bruzdowanego")
+# WPROWADZANIE DANYCH
+metraz = st.number_input("Wpisz metraż (m2):", min_value=1.0, value=100.0)
 
-# Sekcja wprowadzania danych
-with st.container():
-    st.write("### Parametry Inwestycji")
-    metraz = st.number_input("Metraż powierzchni ($m^2$):", min_value=1.0, value=100.0, step=1.0)
-    
-    stan = st.selectbox(
-        "Czy rurki są już zaszpachlowane?",
-        options=["NIE - rurki na wierzchu", "TAK - rurki zaszpachlowane"]
-    )
+stan = st.radio(
+    "Czy rurki są już zaszpachlowane?",
+    ["NIE - rurki na wierzchu", "TAK - bruzdy pełne"]
+)
 
-# --- LOGIKA TECHNOLOGICZNA ---
+# OBLICZENIA (Wymuszone wartości)
 grunt_n = 0.075
 siatka_n = 1.0
 z635_n = 7.5
 
+# Sprawdzamy wybór użytkownika
 if "NIE" in stan:
-    z645_n = 4.5  # 2.5 (bruzdy) + 2.0 (zatopienie siatki)
-    opis = "PEŁNA TECHNOLOGIA (Bruzdy + Siatka + Wylewka)"
+    z645_n = 4.5  # 2.5 bruzdy + 2.0 siatka
+    opis_stanu = "Pełna technologia"
 else:
-    z645_n = 2.0  # Tylko zatopienie siatki
-    opis = "ZBROJENIE I WYGŁADZENIE (Siatka + Wylewka)"
+    z645_n = 2.0  # Tylko siatka
+    opis_stanu = "Proces uproszczony"
 
-z645_total = metraz * z645_n
-d3060_total = z645_total / 3.6
+# Wyniki końcowe
+total_grunt = metraz * grunt_n
+total_siatka = metraz * siatka_n
+total_z645 = metraz * z645_n
+total_d3060 = total_z645 / 3.6
+total_z635 = metraz * z635_n
 
-# --- WYŚWIETLANIE WYNIKÓW ---
+# WYŚWIETLANIE (Używamy kolumn, aby wyniki nie były puste)
 st.divider()
-st.info(f"📋 **Zestawienie dla: {metraz} $m^2$**\n\nStatus: {opis}")
+st.subheader(f"Wyniki dla {metraz} m²")
 
-col1, col2 = st.columns(2)
+# Wyświetlamy wyniki w formie czytelnych kart
+c1, c2 = st.columns(2)
+with c1:
+    st.metric("D 3004 (Grunt)", f"{total_grunt:.2f} kg")
+    st.metric("AR 150 (Siatka)", f"{total_siatka:.0f} m2")
+    st.metric("D 3060 (Plastyfikator)", f"{total_d3060:.2f} kg")
 
-with col1:
-    st.metric("Grunt D 3004", f"{metraz * grunt_n:.2f} kg")
-    st.metric("Siatka AR 150", f"{metraz * siatka_n:.0f} m²")
-    st.metric("Plastyfikator D 3060", f"{d3060_total:.2f} kg")
+with c2:
+    st.metric("Z 645 (Masa)", f"{total_z645:.2f} kg")
+    st.write(f"({total_z645/25:.1f} worków)")
+    st.metric("Z 635 (Wylewka)", f"{total_z635:.2f} kg")
+    st.write(f"({total_z635/25:.1f} worków)")
 
-with col2:
-    st.metric("Masa Z 645", f"{z645_total:.2f} kg")
-    st.caption(f"Potrzeba: {z645_total/25:.1f} worków")
-    st.metric("Wylewka Z 635", f"{metraz * z635_n:.2f} kg")
-    st.caption(f"Potrzeba: {(metraz * z635_n)/25:.1f} worków")
-
-st.divider()
-st.success(f"💡 **Pamiętaj:** Mieszaj masę Z 645 z plastyfikatorem D 3060 w proporcji **1:3.6**.")
+st.success(f"Status: {opis_stanu}")
